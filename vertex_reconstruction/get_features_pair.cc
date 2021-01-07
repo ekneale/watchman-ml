@@ -3,6 +3,7 @@
 // Also outputs MC and pmt hit data for pairs of events to csvfile for use
 // with vertex_reconstruction*.py
 // Author: Elisabeth Kneale, November 2020
+// Adapted in part from bonsai.cc (M.Smy) for rat-pac
 // To compile (requires Makefile):
 // make get_features_pair
 // To run:

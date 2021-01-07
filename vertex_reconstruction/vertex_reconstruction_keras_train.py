@@ -1,5 +1,6 @@
 # Vertex reconstruction with keras deep neural network
 # Creates and stores a model from training data
+# Author Elisabeth Kneale, November 2020
 # To run:
 # python vertex_reconstruction_keras_train.py mcinfile.csv hitinfile.csv 
 

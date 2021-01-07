@@ -1,6 +1,7 @@
 # Vertex reconstruction with keras deep neural network
 # This reads in the model output by vertex_reconstruction_keras_train.py
 # and outputs a prediction for the x, y and z values of the interaction vertex.
+# Author Elisabeth Kneale, November 2020
 # To run:
 # python vertex_reconstruction_keras_predict.py mcinfile.csv hitinfile.csv mcinfile_train.csv hitinfile_train.csv  
 

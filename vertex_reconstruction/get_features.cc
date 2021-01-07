@@ -3,6 +3,7 @@
 // Also outputs MC and pmt hit data to csvfile for use
 // with vertex_reconstruction*.py
 // Author: Elisabeth Kneale, November 2020
+// Adapted in part from bonsai.cc for rat-pac (M. Smy)
 // To compile (requires Makefile):
 // make get_features
 // To run:

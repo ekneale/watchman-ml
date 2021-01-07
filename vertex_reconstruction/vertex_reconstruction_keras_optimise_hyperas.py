@@ -1,9 +1,10 @@
-# Vertex reconstruction with keras deep neural network
+# Vertex reconstruction with keras deep neural network.
+# Performs simultaneous optimisation of hyperparameters
+# which can be subsequently input in the training and 
+# prediction code.
+# Author Elisabeth Kneale, November 2020
 # To run:
-# python vertex_reconstruction_keras_optimise.py mcinfile.csv hitinfile.csv 
-# kernel_initializer={{choice('uniform', 'lecun_uniform', 'normal', 'zero', 'glorot_normal', 'glorot_uniform', 'he_normal', 'he_uniform')}}
-# activation={{choice('softmax','softplus','softsign','relu','tanh','sigmoid','hard_sigmoid','linear')}})
-# optimizer={{choice('SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax', 'Nadam')}})
+# python vertex_reconstruction_keras_optimise_hyperas.py mcinfile.csv hitinfile.csv 
 
 # imports
 from __future__ import print_function
