@@ -1,4 +1,5 @@
 # Vertex reconstruction with keras deep neural network
+# Creates and stores a model from training data
 # To run:
 # python vertex_reconstruction_keras_train.py mcinfile.csv hitinfile.csv 
 
@@ -80,7 +81,6 @@ x_scaler_vtx = preprocessing.MinMaxScaler(feature_range=(-1,1))
 x_scaler_t = preprocessing.MinMaxScaler(feature_range=(-1,1))
 x_scaler_q = preprocessing.MinMaxScaler()
 y_scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
-#y_scaler = preprocessing.StandardScaler()
 
 x_train_vtx = x_scaler_vtx.fit_transform(x_train_vtx.reshape(-1,x_train_vtx.shape[-1])).reshape(x_train_vtx.shape)
 x_train_t = x_scaler_t.fit_transform(x_train_t)#.reshape(-1,x_train_t.shape[-1])).reshape(x_train_t.shape)
@@ -141,7 +141,7 @@ estimator=KerasRegressor(build_fn=model,
               batch_size=113,
               epochs=57,
               verbose=0)
-
+# k-fold cross validation for less biased estimate of model performance
 kfold = KFold(n_splits=10,shuffle=True,random_state=seed)
 results = cross_val_score(estimator, x_train, y_train, cv = kfold)
 print('Results: %.2f (%.2f) MSE' % (results.mean(), results.std()))
