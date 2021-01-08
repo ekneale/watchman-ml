@@ -11,3 +11,6 @@ Performs reconstruction of interaction vertex for pre-selected pairs of events u
 5. vertex_reconstruction_keras_predict.py makes predictions for the interaction vertex in x, y and z
 
 Additional requirement: ROOT for vertex_reconstruction_keras_predict.py
+
+To view the training and validation statistics graphically, run:
+tensorboard --logdir logs/train after the training stage and open the link generated.

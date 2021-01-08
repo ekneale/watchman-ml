@@ -41,10 +41,10 @@ np.random.seed(seed)
 def data():
     """
     Separated from create_model() so that hyperopt won't
-    reload data for each evalutation run.
+    reload data for each evaluation run.
     """
     # define the number of outputs and hit features
-    num_outputs  = 7 # mcx,mcy,mcz,mcu,mcv,mcw,mct
+    num_outputs  = 3 # mcx,mcy,mcz,mcu,mcv,mcw,mct
     num_features = 5 # pmtX,pmtY,pmtZ,pmtT,pmtQ
 
     # import the data from the root file
@@ -113,7 +113,13 @@ def model(x_train,y_train,x_test,y_test):
     model.add(Masking(mask_value=0,input_shape=(num_hits,num_features)))
     model.add(Flatten())
     model.add(Dense(int({{quniform(1,150,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+    model.add(Dropout({{uniform(0,1)}}))
     model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+    model.add(Dropout({{uniform(0,1)}}))
+    # If we choose 'four', add an additional fourth layer
+    if conditional({{choice(['three','four'])}}) == 'four':
+        model.add(Dense({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+        model.add(Dropout({{uniform(0,1)}}))
     model.add(Dense(num_outputs, kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}})) # final output has 7 dimensions
     # Print model summary
     model.summary()
