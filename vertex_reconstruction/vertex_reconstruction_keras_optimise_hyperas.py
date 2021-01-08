@@ -23,13 +23,14 @@ from sklearn.model_selection import train_test_split
 
 from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Concatenate, Input, Lambda, Masking, Flatten
+from tensorflow.keras.layers import Dense, Concatenate, Input, Lambda, Masking, Flatten, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 
 from hyperopt import Trials, STATUS_OK, tpe
 from hyperas import optim
 from hyperas.distributions import choice, uniform, quniform
+
 
 #tf.debugging.set_log_device_placement(True)
 
@@ -112,15 +113,15 @@ def model(x_train,y_train,x_test,y_test):
     model = Sequential()
     model.add(Masking(mask_value=0,input_shape=(num_hits,num_features)))
     model.add(Flatten())
-    model.add(Dense(int({{quniform(1,150,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+    model.add(Dense(int({{quniform(1,150,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
     model.add(Dropout({{uniform(0,1)}}))
-    model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+    model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
     model.add(Dropout({{uniform(0,1)}}))
     # If we choose 'four', add an additional fourth layer
-    if conditional({{choice(['three','four'])}}) == 'four':
-        model.add(Dense({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}}))
+    if {{choice(['three','four'])}} == 'four':
+        model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
         model.add(Dropout({{uniform(0,1)}}))
-    model.add(Dense(num_outputs, kernel_initializer={{choice(['uniform','lecun_uniform', 'glorot_uniform', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','sigmoid'])}})) # final output has 7 dimensions
+    model.add(Dense(num_outputs, kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation='relu')) # final output has 7 dimensions
     # Print model summary
     model.summary()
     # Compile model
@@ -129,8 +130,8 @@ def model(x_train,y_train,x_test,y_test):
     tbCallBack = keras.callbacks.TensorBoard(log_dir='./logs/fit', histogram_freq=1)
 
     result = model.fit(x_train,y_train, 
-            batch_size=int({{quniform(2,150,1)}}),
-            epochs = int({{quniform(10,200,1)}}),
+            batch_size={{choice([2,64,128,256])}},
+            epochs = {{choice([2,8,16,32,64,128])}},
             verbose=2,
             validation_data= (x_test,y_test),
             callbacks=[tbCallBack])
@@ -143,7 +144,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=200,
+                                          max_evals=50,
                                           trials=Trials(),
                                           keep_temp=True)
     x_train, y_train, x_test, y_test = data()
