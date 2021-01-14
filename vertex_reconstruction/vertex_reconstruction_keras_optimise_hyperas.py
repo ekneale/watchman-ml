@@ -23,8 +23,8 @@ from sklearn.model_selection import train_test_split
 
 from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, Concatenate, Input, Lambda, Masking, Flatten, Dropout
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.layers import Dense, Masking, Flatten, Dropout
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
 
 from hyperopt import Trials, STATUS_OK, tpe
@@ -70,7 +70,6 @@ def data():
     X = X.reshape(x_samples,num_features,num_hits)
     X = X.astype('float32')
     Y = Y.astype('float32')
-   
     # Group into xyz, t and q for scaling
     X_vtx = X[:,:3,:]
     X_t = X[:,3,:]
@@ -91,6 +90,7 @@ def data():
 
     # Restore the shape of the data post scaling
     X = np.hstack((X_vtx[:,0,:],X_vtx[:,1,:],X_vtx[:,2,:],X_t,X_q))
+    X = X.reshape(x_samples,num_features,num_hits)
     # Replace all 'nan' values with 0 ready for masking layer
     X[np.isnan(X)]=0
     x_train,x_test = train_test_split(X,random_state=1)
@@ -109,42 +109,52 @@ def model(x_train,y_train,x_test,y_test):
     # define the number of outputs and hit features
     num_outputs  = 3 # mcx,mcy,mcz,mcu,mcv,mcw,mct
     num_features = 5 # pmtX,pmtY,pmtZ,pmtT,pmtQ
-
+    
     model = Sequential()
-    model.add(Masking(mask_value=0,input_shape=(num_hits,num_features)))
+    model.add(Masking(mask_value=0,input_shape=(num_features,num_hits)))
     model.add(Flatten())
-    model.add(Dense(int({{quniform(1,150,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
+    model.add(Dense(int({{quniform(1,512,1)}}), kernel_initializer={{choice(['normal', 'he_normal','uniform','he_uniform'])}}, activation={{choice(['softmax','relu','linear'])}}))
     model.add(Dropout({{uniform(0,1)}}))
-    model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
+    model.add(Dense(int({{quniform(1,512,1)}}), kernel_initializer={{choice(['normal', 'he_normal','uniform','he_uniform'])}}, activation={{choice(['softmax','relu','linear'])}}))
     model.add(Dropout({{uniform(0,1)}}))
-    # If we choose 'four', add an additional fourth layer
-    if {{choice(['three','four'])}} == 'four':
-        model.add(Dense(int({{quniform(1,100,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu'])}}))
+    model.add(Dense(int({{quniform(1,512,1)}}), kernel_initializer={{choice(['normal', 'he_normal','uniform','he_uniform'])}}, activation={{choice(['softmax','relu','linear'])}}))
+    model.add(Dropout({{uniform(0,1)}}))
+    # If we choose 'five', add an additional layer
+    num_layers = {{choice(['four','five'])}}
+    if num_layers == 'five':
+        model.add(Dense(int({{quniform(1,512,1)}}), kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation={{choice(['softmax','relu','linear'])}}))
         model.add(Dropout({{uniform(0,1)}}))
-    model.add(Dense(num_outputs, kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}}, activation='relu')) # final output has 7 dimensions
+    model.add(Dense(num_outputs, kernel_initializer={{choice(['uniform','normal', 'he_normal','he_uniform'])}},activation={{choice(['linear','relu'])}})) # final output has 7 dimensions
     # Print model summary
     model.summary()
     # Compile model
-    model.compile(loss='mean_squared_error', optimizer={{choice(['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax','Nadam'])}}, metrics=['accuracy'])
-
-    tbCallBack = keras.callbacks.TensorBoard(log_dir='./logs/fit', histogram_freq=1)
+    # mean_squared_error for metrics (potentially more informative than accuracy)
+    model.compile(loss='mean_squared_error', optimizer= 'Adamax', metrics=['accuracy'])
+    #{{choice(['SGD', 'RMSprop', 'Adagrad', 'Adadelta', 'Adam', 'Adamax','Nadam'])}}
+    print(model.metrics_names)
+#    tbCallBack = keras.callbacks.TensorBoard(log_dir='./logs/fit', histogram_freq=1)
+    early_stopping = EarlyStopping(monitor='val_loss',patience=4)
+    checkpointer = ModelCheckpoint(filepath='keras_weights_optimisation.hdf5',
+            verbose=1,
+            save_best_only=True)
 
     result = model.fit(x_train,y_train, 
-            batch_size={{choice([2,64,128,256])}},
-            epochs = {{choice([2,8,16,32,64,128])}},
+            batch_size=int({{quniform(2,256,1)}}),
+            epochs=int({{quniform(2,64,1)}}),
             verbose=2,
             validation_data= (x_test,y_test),
-            callbacks=[tbCallBack])
-    score, acc = model.evaluate(x_test,y_test,verbose=0)
-    print('Test accuracy:', acc)
+            callbacks=[early_stopping,checkpointer])
 
-    return {'loss': -acc, 'score':score, 'status':STATUS_OK, 'model':model}
+    mse,acc = model.evaluate(x_test,y_test,verbose=0)
+
+    print('mse,acc:',mse,acc)
+    return {'loss':mse, 'status':STATUS_OK, 'model':model}
 
 if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=50,
+                                          max_evals=200,
                                           trials=Trials(),
                                           keep_temp=True)
     x_train, y_train, x_test, y_test = data()
